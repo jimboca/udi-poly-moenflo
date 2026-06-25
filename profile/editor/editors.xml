@@ -1,0 +1,32 @@
+<editors>
+    <editor id="bool">
+        <range uom="2" subset="0,1" />
+    </editor>
+    <editor id="cst">
+        <range uom="25" subset="0,1" nls="CST" />
+    </editor>
+    <editor id="I_AUTH">
+        <range uom="25" subset="0-3" nls="AUTH" />
+    </editor>
+    <editor id="COUNT">
+        <range uom="56" min="0" max="2147483647" prec="0" />
+    </editor>
+    <editor id="GPM">
+        <range uom="143" min="0" max="100" prec="2" />
+    </editor>
+    <editor id="PSI">
+        <range uom="138" min="0" max="200" prec="1" />
+    </editor>
+    <editor id="TEMP_F">
+        <range uom="17" min="0" max="150" prec="1" />
+    </editor>
+    <editor id="VALVE">
+        <range uom="25" subset="0,1" nls="VALVE" />
+    </editor>
+    <editor id="SYSMODE">
+        <range uom="25" subset="0,1,2" nls="SYSMODE" />
+    </editor>
+    <editor id="RSSI">
+        <range uom="131" min="-120" max="0" prec="0" />
+    </editor>
+</editors>

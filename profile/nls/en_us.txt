@@ -1,0 +1,42 @@
+
+# controller
+# ND-*-ICON tokens: https://wiki.universal-devices.com/ISY_Developers:API:V5:Appendix:Icons
+ND-controller-NAME = Moen Flo Controller
+ND-controller-ICON = GenericCtl
+CMD-ctl-QUERY-NAME = Query
+CMD-ctl-DISCOVER-NAME = Discover
+ST-ctl-GV1-NAME = Authorization Status
+ST-ctl-GV2-NAME = Device Count
+
+CST-0 = Disconnected
+CST-1 = Connected
+
+AUTH-0 = Not Started
+AUTH-1 = Started
+AUTH-2 = Authorized
+AUTH-3 = Failed
+
+# Flo shutoff device
+ND-modev-NAME = Moen Flo Shutoff
+ND-modev-ICON = Irrigation
+ST-modev-ST-NAME = Valve
+ST-modev-GV1-NAME = Cloud Connected
+ST-modev-GV2-NAME = Flow Rate
+ST-modev-GV3-NAME = Pressure
+ST-modev-GV4-NAME = Water Temperature
+ST-modev-GV5-NAME = Mode
+ST-modev-GV6-NAME = WiFi RSSI
+ST-modev-GV7-NAME = Warnings
+ST-modev-GV8-NAME = Critical Alerts
+
+CMD-modev-QUERY-NAME = Query
+CMD-modev-SET_VALVE-NAME = Set Valve
+CMD-modev-HEALTH-NAME = Run Health Test
+CMD-modev-SET_MODE-NAME = Set Mode
+
+VALVE-0 = Closed
+VALVE-1 = Open
+
+SYSMODE-0 = Home
+SYSMODE-1 = Away
+SYSMODE-2 = Sleep

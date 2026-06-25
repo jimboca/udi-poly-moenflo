@@ -1,0 +1,4 @@
+udi_interface>=3.0.31
+aioflo>=2021.11.0
+aiohttp>=3.8.0
+markdown2

@@ -1,0 +1,47 @@
+<nodeDefs>
+    <nodeDef id="controller" nls="ctl">
+        <editors />
+        <sts>
+            <st id="ST" editor="cst" />
+            <st id="GV1" editor="I_AUTH" />
+            <st id="GV2" editor="COUNT" />
+        </sts>
+        <cmds>
+            <sends>
+                <cmd id="DON" />
+                <cmd id="DOF" />
+            </sends>
+            <accepts>
+                <cmd id="QUERY" />
+                <cmd id="DISCOVER" />
+            </accepts>
+        </cmds>
+    </nodeDef>
+    <nodeDef id="modev" nls="modev">
+        <editors />
+        <sts>
+            <st id="ST" editor="VALVE" />
+            <st id="GV1" editor="bool" />
+            <st id="GV2" editor="GPM" />
+            <st id="GV3" editor="PSI" />
+            <st id="GV4" editor="TEMP_F" />
+            <st id="GV5" editor="SYSMODE" />
+            <st id="GV6" editor="RSSI" />
+            <st id="GV7" editor="COUNT" />
+            <st id="GV8" editor="COUNT" />
+        </sts>
+        <cmds>
+            <sends />
+            <accepts>
+                <cmd id="QUERY" />
+                <cmd id="SET_VALVE">
+                    <p id="" editor="VALVE" init="ST" />
+                </cmd>
+                <cmd id="HEALTH" />
+                <cmd id="SET_MODE">
+                    <p id="" editor="SYSMODE" init="GV5" />
+                </cmd>
+            </accepts>
+        </cmds>
+    </nodeDef>
+</nodeDefs>

@@ -1,0 +1,11 @@
+__pycache__/
+*.pyc
+*.pyo
+logs/
+*.zip
+*.cert
+*.key
+*.lock
+svc.pid
+.installed
+000*
