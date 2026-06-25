@@ -1,8 +1,8 @@
 
 import asyncio
 import logging
-import os
 import time
+from pathlib import Path
 from threading import Thread
 
 import markdown2
@@ -63,9 +63,17 @@ class Controller(Node):
         LOGGER.info('Started Moen Flo NodeServer %s', self.poly.serverdata.get('version'))
         self._ensure_loop_running()
         self.setDriver('ST', 1)
-        configuration_help = './CONFIG.md'
-        if os.path.isfile(configuration_help):
-            self.poly.setCustomParamsDoc(markdown2.markdown_path(configuration_help))
+        configuration_help = Path(__file__).resolve().parent.parent / 'CONFIG.md'
+        if configuration_help.is_file():
+            try:
+                self.poly.setCustomParamsDoc(
+                    markdown2.markdown_path(
+                        str(configuration_help),
+                        extras=['tables', 'fenced-code-blocks'],
+                    )
+                )
+            except Exception:
+                LOGGER.exception('Failed to convert/set CONFIG.md as custom params doc')
         else:
             LOGGER.warning('CONFIG.md not found')
         self.heartbeat(0)

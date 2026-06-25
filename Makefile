@@ -4,9 +4,8 @@
 #   1. Bump nodes/__init__.py VERSION; commit (and update CHANGELOG.md).
 #   2. `make release`     — tag v<VERSION> and push current branch + tag.
 #                           Then in PG3 UI, edit the plugin and set Version to that exact VERSION.
-#   3. `make beta`        — push HEAD to the `beta` branch (reference) and build $(NAME)-beta-<VERSION>.zip.
-#                           Then in PG3 UI, edit the plugin and set Version to that exact VERSION.
-#   4. `make production`  — push HEAD to the `production` branch (reference) and build $(NAME)-production-<VERSION>.zip.
+#   3. `make beta`        — push HEAD to `master` and `beta`, then build $(NAME)-beta-<VERSION>.zip.
+#   4. `make production`  — push HEAD to `master` and `production`, then build $(NAME)-production-<VERSION>.zip.
 # The track-specific zip files are the actual deliverables uploaded to PG3.
 #
 # Note: targets that use multi-line shell recipes require GNU Make. On FreeBSD,
@@ -17,6 +16,7 @@ PYTHON ?= python3
 NAME = MoenFlo
 GIT_REMOTE ?= origin
 # Reference branches pushed alongside each per-track zip build.
+BRANCH_MASTER ?= master
 BRANCH_BETA ?= beta
 BRANCH_PRODUCTION ?= production
 XML_FILES = profile/*/*.xml
@@ -33,12 +33,12 @@ help:
 	@echo ""
 	@echo "PG3 release (clean tree; not detached HEAD)"
 	@echo "  make release             Tag v\$$VERSION and push current branch + tag"
-	@echo "  make beta                Push HEAD -> $(GIT_REMOTE)/$(BRANCH_BETA) and build $(NAME)-$(BRANCH_BETA)-\$$VERSION.zip"
-	@echo "  make production          Push HEAD -> $(GIT_REMOTE)/$(BRANCH_PRODUCTION) and build $(NAME)-$(BRANCH_PRODUCTION)-\$$VERSION.zip"
+	@echo "  make beta                Push HEAD -> $(GIT_REMOTE)/$(BRANCH_MASTER) + $(BRANCH_BETA); build $(NAME)-$(BRANCH_BETA)-\$$VERSION.zip"
+	@echo "  make production          Push HEAD -> $(GIT_REMOTE)/$(BRANCH_MASTER) + $(BRANCH_PRODUCTION); build $(NAME)-$(BRANCH_PRODUCTION)-\$$VERSION.zip"
 	@echo "                           After make release / make beta, edit plugin in PG3 UI and set Version to \$$VERSION"
 	@echo "  make zip                 Ad-hoc local $(NAME).zip (no version suffix)"
 	@echo ""
-	@echo "Variables: PYTHON GIT_REMOTE BRANCH_BETA BRANCH_PRODUCTION"
+	@echo "Variables: PYTHON GIT_REMOTE BRANCH_MASTER BRANCH_BETA BRANCH_PRODUCTION"
 
 clean:
 	$(PYTHON) -c "import pathlib, shutil; r = pathlib.Path('.'); [shutil.rmtree(p, ignore_errors=True) for p in r.rglob('__pycache__') if p.is_dir()]; shutil.rmtree('.pytest_cache', ignore_errors=True)"
@@ -49,8 +49,8 @@ zip:
 	rm -f $(NAME).zip
 	zip -x@zip_exclude.lst -r $(NAME).zip *
 
-# Push current HEAD to $(GIT_REMOTE)/$(BRANCH_BETA) (reference) and build $(NAME)-$(BRANCH_BETA)-<VERSION>.zip
-# for upload to PG3. Requires clean tree; not detached HEAD.
+# Push current HEAD to $(GIT_REMOTE)/$(BRANCH_MASTER) and $(BRANCH_BETA), then build
+# $(NAME)-$(BRANCH_BETA)-<VERSION>.zip for upload to PG3. Requires clean tree; not detached HEAD.
 beta:
 	@set -e; \
 	ROOT=$$(pwd); \
@@ -67,18 +67,18 @@ beta:
 		exit 1; \
 	fi; \
 	REPO=$$(git -C "$$ROOT" rev-parse --show-toplevel); \
-	git -C "$$ROOT" push "$(GIT_REMOTE)" HEAD:"$(BRANCH_BETA)"; \
+	SHA=$$(git -C "$$ROOT" rev-parse --short HEAD); \
+	git -C "$$ROOT" push "$(GIT_REMOTE)" HEAD:"$(BRANCH_MASTER)" HEAD:"$(BRANCH_BETA)"; \
 	echo "Repository: $$REPO"; \
-	echo "Branch: $(BRANCH_BETA)"; \
-	echo "Pushed $$(git -C "$$ROOT" rev-parse --short HEAD) to $(GIT_REMOTE)/$(BRANCH_BETA)."; \
+	echo "Pushed $$SHA to $(GIT_REMOTE)/$(BRANCH_MASTER) and $(GIT_REMOTE)/$(BRANCH_BETA)."; \
 	ZIPFILE="$(NAME)-$(BRANCH_BETA)-$$VERSION.zip"; \
 	rm -f "$$ZIPFILE"; \
 	zip -x@zip_exclude.lst -r "$$ZIPFILE" * >/dev/null; \
 	echo "Built $$ROOT/$$ZIPFILE for upload to PG3."; \
 	echo "PG3 UI action required: edit this plugin and set Version to $$VERSION."
 
-# Push current HEAD to $(GIT_REMOTE)/$(BRANCH_PRODUCTION) (reference) and build $(NAME)-$(BRANCH_PRODUCTION)-<VERSION>.zip
-# for upload to PG3. Requires clean tree; not detached HEAD.
+# Push current HEAD to $(GIT_REMOTE)/$(BRANCH_MASTER) and $(BRANCH_PRODUCTION), then build
+# $(NAME)-$(BRANCH_PRODUCTION)-<VERSION>.zip for upload to PG3. Requires clean tree; not detached HEAD.
 production:
 	@set -e; \
 	ROOT=$$(pwd); \
@@ -95,14 +95,15 @@ production:
 		exit 1; \
 	fi; \
 	REPO=$$(git -C "$$ROOT" rev-parse --show-toplevel); \
-	git -C "$$ROOT" push "$(GIT_REMOTE)" HEAD:"$(BRANCH_PRODUCTION)"; \
+	SHA=$$(git -C "$$ROOT" rev-parse --short HEAD); \
+	git -C "$$ROOT" push "$(GIT_REMOTE)" HEAD:"$(BRANCH_MASTER)" HEAD:"$(BRANCH_PRODUCTION)"; \
 	echo "Repository: $$REPO"; \
-	echo "Branch: $(BRANCH_PRODUCTION)"; \
-	echo "Pushed $$(git -C "$$ROOT" rev-parse --short HEAD) to $(GIT_REMOTE)/$(BRANCH_PRODUCTION)."; \
+	echo "Pushed $$SHA to $(GIT_REMOTE)/$(BRANCH_MASTER) and $(GIT_REMOTE)/$(BRANCH_PRODUCTION)."; \
 	ZIPFILE="$(NAME)-$(BRANCH_PRODUCTION)-$$VERSION.zip"; \
 	rm -f "$$ZIPFILE"; \
 	zip -x@zip_exclude.lst -r "$$ZIPFILE" * >/dev/null; \
-	echo "Built $$ROOT/$$ZIPFILE for upload to PG3."
+	echo "Built $$ROOT/$$ZIPFILE for upload to PG3."; \
+	echo "PG3 UI action required: edit this plugin and set Version to $$VERSION."
 
 # Tag the current HEAD as v<VERSION> and push the current branch + tag to $(GIT_REMOTE).
 # Version = nodes/__init__.py VERSION (canonical). Track-specific zips are built by `make beta` / `make production`.
