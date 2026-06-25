@@ -91,7 +91,15 @@ Available on each shutoff node in IoX:
 
 ## Polling
 
-- **Long poll** (PG3 default ~3–10 min): heartbeat on controller + refresh all device nodes.
-- **Short poll**: retries authentication if a previous login failed.
+Device status is refreshed from the Flo cloud on each **short poll**. The controller heartbeat runs on **long poll** only.
 
-Tune poll intervals in the PG3 plugin configuration if you hit Flo rate limits.
+Configure intervals in the PG3 Node Server UI under **Configuration → Advanced Configuration**:
+
+| Setting | Role in this plugin |
+|---------|---------------------|
+| **shortPoll** | Refreshes all shutoff nodes (`device.get_info` per device) |
+| **longPoll** | Controller heartbeat (DON/DOF on ST) |
+
+**Do not set shortPoll below 60 seconds.** Each short poll calls the Flo API once per shutoff device. Values under 60 increase cloud traffic and can contribute to auth or API errors. The PG3 default shortPoll is 60.
+
+If you need a snapshot sooner, use **Query** on a shutoff node instead of lowering shortPoll.

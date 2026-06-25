@@ -112,15 +112,16 @@ class Controller(Node):
             self.heartbeat()
             if self.connect_st == AUTH_FAILED:
                 self.connect()
-            if self.connect_st == AUTH_AUTHORIZED:
+        elif polltype == 'shortPoll':
+            if self.connect_st == AUTH_FAILED:
+                self.connect()
+            elif self.connect_st == AUTH_AUTHORIZED:
                 for node in self.poly.nodes():
                     if node.address != self.address and hasattr(node, 'long_poll'):
                         try:
                             node.long_poll()
                         except Exception:
                             LOGGER.error('long_poll failed for %s', node.address, exc_info=True)
-        elif polltype == 'shortPoll' and self.connect_st == AUTH_FAILED:
-            self.connect()
 
     def handler_custom_params(self, data):
         LOGGER.debug('custom_params: %s', data)
