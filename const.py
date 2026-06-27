@@ -32,3 +32,8 @@ AUTH_NOT_STARTED = 0
 AUTH_STARTED = 1
 AUTH_AUTHORIZED = 2
 AUTH_FAILED = 3
+
+PARAM_DEFAULTS = {
+    'username': 'YourFloEmail',
+    'password': 'YourFloPassword',
+}

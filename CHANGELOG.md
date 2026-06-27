@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.0.1
+
+- Show `credentials` notice when username/password are missing or still set to placeholders
+- Refresh shutoff nodes on short poll; document minimum shortPoll interval in CONFIG.md
+- Render CONFIG.md tables in PG3 help (markdown2 `tables` extra)
+- Beta/production releases push `master` and track branch together
+
 ## 1.0.0
 
 - Initial release

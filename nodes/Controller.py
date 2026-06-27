@@ -12,7 +12,13 @@ from aioflo.errors import RequestError
 
 from udi_interface import Custom, LOGGER, LOG_HANDLER, Node
 
-from const import AUTH_AUTHORIZED, AUTH_FAILED, AUTH_NOT_STARTED, AUTH_STARTED
+from const import (
+    AUTH_AUTHORIZED,
+    AUTH_FAILED,
+    AUTH_NOT_STARTED,
+    AUTH_STARTED,
+    PARAM_DEFAULTS,
+)
 from node_funcs import device_address, get_valid_node_name
 from .FloDevice import FloDevice
 
@@ -89,7 +95,8 @@ class Controller(Node):
     def handler_add_node_done(self, data):
         LOGGER.debug('add_node_done: %s', data)
         if data.get('address') == self.address:
-            if self.connect():
+            self._ensure_params_validated()
+            if self.handler_params_st and self.connect():
                 self.discover()
             self.handler_add_node_done_st = True
         if isinstance(data, dict) and data.get('address'):
@@ -133,30 +140,67 @@ class Controller(Node):
 
     def handler_custom_params(self, data):
         LOGGER.debug('custom_params: %s', data)
-        defaults = {
-            'username': 'YourFloEmail',
-            'password': 'YourFloPassword',
-        }
         if data is None:
-            self.Params['username'] = defaults['username']
-            return
+            data = {}
         self.Params.load(data)
-        ok = True
-        for param, placeholder in defaults.items():
-            if param not in data:
-                self.Params[param] = placeholder
-                return
-            if not data[param] or data[param] == placeholder:
-                msg = f'Please set Moen Flo {param}'
-                LOGGER.error(msg)
-                self.Notices[param] = msg
-                ok = False
-            else:
-                self.Notices.delete(param)
+
+        if self._seed_missing_params():
+            return
+
+        ok = self._validate_credentials()
         self.handler_params_st = ok
         if ok and self.handler_add_node_done_st:
             if self.connect():
                 self.discover()
+
+    def _seed_missing_params(self):
+        """Ensure username/password keys exist in PG3; return True if still seeding."""
+        seeded = False
+        for param, placeholder in PARAM_DEFAULTS.items():
+            if self.Params.get(param) is None:
+                self.Params[param] = placeholder
+                seeded = True
+        return seeded
+
+    def _current_params(self):
+        params = {}
+        for param, placeholder in PARAM_DEFAULTS.items():
+            value = self.Params.get(param)
+            params[param] = placeholder if value is None else value
+        return params
+
+    def _validate_credentials(self):
+        """Return True when real Flo credentials are configured."""
+        params = self._current_params()
+        missing = []
+        for param, placeholder in PARAM_DEFAULTS.items():
+            value = params.get(param)
+            if not value or value == placeholder:
+                missing.append(param)
+
+        if missing:
+            names = ' and '.join(missing)
+            msg = (
+                f'Please set Moen Flo {names} in '
+                'Configuration → Custom Configuration Parameters'
+            )
+            LOGGER.error(msg)
+            self.Notices['credentials'] = msg
+            for param in PARAM_DEFAULTS:
+                self.Notices.delete(param)
+            return False
+
+        self.Notices.delete('credentials')
+        for param in PARAM_DEFAULTS:
+            self.Notices.delete(param)
+        return True
+
+    def _ensure_params_validated(self):
+        if self.handler_params_st is not None:
+            return
+        if self._seed_missing_params():
+            return
+        self.handler_params_st = self._validate_credentials()
 
     def set_connect_st(self, value):
         self.connect_st = value
@@ -175,8 +219,10 @@ class Controller(Node):
 
     def connect(self):
         if self.handler_params_st is not True:
-            LOGGER.error('Cannot connect until configuration is complete')
-            return False
+            self._ensure_params_validated()
+            if self.handler_params_st is not True:
+                LOGGER.error('Cannot connect until configuration is complete')
+                return False
         self.set_connect_st(AUTH_STARTED)
         try:
             self.api = self.run_async(self._async_connect())
