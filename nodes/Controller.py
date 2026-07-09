@@ -2,6 +2,7 @@
 import asyncio
 import logging
 import time
+from datetime import datetime
 from pathlib import Path
 from threading import Thread
 
@@ -36,6 +37,7 @@ class Controller(Node):
         self.handler_add_node_done_st = False
         self.n_queue = []
         self.loop_thread = None
+        self._consumption_cache = {}
         self.Notices = Custom(poly, 'notices')
         self.Params = Custom(poly, 'customparams')
         poly.subscribe(poly.START, self.handler_start, address)
@@ -131,12 +133,58 @@ class Controller(Node):
             if self.connect_st == AUTH_FAILED:
                 self.connect()
             elif self.connect_st == AUTH_AUTHORIZED:
+                self.presence_ping()
+                self.clear_consumption_cache()
                 for node in self.poly.nodes():
                     if node.address != self.address and hasattr(node, 'long_poll'):
                         try:
                             node.long_poll()
                         except Exception:
                             LOGGER.error('long_poll failed for %s', node.address, exc_info=True)
+
+    def presence_ping(self):
+        """Ask Flo cloud to refresh device telemetry (same as Home Assistant)."""
+        if self.api is None or self.connect_st != AUTH_AUTHORIZED:
+            return False
+        try:
+            self.run_async(self.api.presence.ping())
+            LOGGER.debug('Flo presence ping sent')
+            return True
+        except Exception as ex:
+            LOGGER.warning('Flo presence ping failed: %s', ex)
+            return False
+
+    def clear_consumption_cache(self, location_id=None):
+        """Drop cached consumption; omit location_id to clear all locations."""
+        if location_id is None:
+            self._consumption_cache = {}
+        else:
+            self._consumption_cache.pop(location_id, None)
+
+    def get_consumption(self, location_id):
+        """Return today's hourly consumption for a location (cached per poll cycle)."""
+        if not location_id or self.api is None:
+            return None
+        if location_id in self._consumption_cache:
+            return self._consumption_cache[location_id]
+        try:
+            today = datetime.now().date()
+            start = datetime(today.year, today.month, today.day, 0, 0, 0)
+            end = datetime(today.year, today.month, today.day, 23, 59, 59, 999000)
+            data = self.run_async(
+                self.api.water.get_consumption_info(location_id, start, end)
+            )
+            self._consumption_cache[location_id] = data
+            return data
+        except Exception as ex:
+            LOGGER.error(
+                'Consumption fetch failed for location %s: %s',
+                location_id,
+                ex,
+                exc_info=True,
+            )
+            self._consumption_cache[location_id] = None
+            return None
 
     def handler_custom_params(self, data):
         LOGGER.debug('custom_params: %s', data)
@@ -279,6 +327,7 @@ class Controller(Node):
                         existing.device_id = device_id
                         existing.location_id = location_id
                         existing.update_from_dict(device)
+                        existing.update_consumption()
                         device_count += 1
                         continue
                     node = FloDevice(
@@ -313,6 +362,9 @@ class Controller(Node):
 
     def query(self, command=None):
         self.reportDrivers()
+        if self.connect_st == AUTH_AUTHORIZED:
+            self.presence_ping()
+            self.clear_consumption_cache()
         self.discover()
 
     id = 'controller'

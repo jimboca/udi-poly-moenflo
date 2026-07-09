@@ -7,11 +7,14 @@ Uses the [aioflo](https://github.com/bachya/aioflo) Python library to connect to
 ## Features
 
 - Monitor flow rate (GPM), water pressure (PSI), and temperature
+- Daily and hourly water use (gallons)
+- Telemetry age (minutes since Flo last updated readings)
 - Valve open/closed status and cloud connectivity
 - System mode (Home / Away / Sleep)
 - Warning and critical alert counts
 - Commands: open/close valve, run health test, set Home/Away mode
 - Automatic discovery of shutoff devices at each Flo location
+- Presence ping on poll/Query so Flo refreshes device telemetry
 
 ## Requirements
 

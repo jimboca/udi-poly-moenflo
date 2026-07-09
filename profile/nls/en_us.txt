@@ -28,6 +28,9 @@ ST-modev-GV5-NAME = Mode
 ST-modev-GV6-NAME = WiFi RSSI
 ST-modev-GV7-NAME = Warnings
 ST-modev-GV8-NAME = Critical Alerts
+ST-modev-GV9-NAME = Daily Gallons
+ST-modev-GV10-NAME = Hourly Gallons
+ST-modev-GV11-NAME = Telemetry Age
 
 CMD-modev-QUERY-NAME = Query
 CMD-modev-SET_VALVE-NAME = Set Valve

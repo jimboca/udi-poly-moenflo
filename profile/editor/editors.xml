@@ -14,6 +14,9 @@
     <editor id="GPM">
         <range uom="143" min="0" max="100" prec="2" />
     </editor>
+    <editor id="GALLON">
+        <range uom="69" min="0" max="100000" prec="2" />
+    </editor>
     <editor id="PSI">
         <range uom="138" min="0" max="200" prec="1" />
     </editor>
@@ -28,5 +31,8 @@
     </editor>
     <editor id="RSSI">
         <range uom="131" min="-120" max="0" prec="0" />
+    </editor>
+    <editor id="MINUTES">
+        <range uom="45" min="0" max="10080" prec="0" />
     </editor>
 </editors>

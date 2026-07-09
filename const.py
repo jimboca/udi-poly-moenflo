@@ -15,9 +15,11 @@ MODE_INDEX_TO_NAME = {
 UOM_INDEX = 25
 UOM_BOOL = 2
 UOM_GPM = 143       # US gallons per minute
+UOM_GALLON = 69     # US gallon
 UOM_PSI = 138       # pounds per square inch
 UOM_TEMP_F = 17
 UOM_DBM = 131       # decibel milliwatts (WiFi RSSI)
+UOM_MINUTES = 45    # duration in minutes
 UOM_RAW = 56        # unitless count / raw value
 
 VALVE_OPEN = 1

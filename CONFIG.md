@@ -55,9 +55,15 @@ On each **Moen Flo Shutoff** node:
 |--------|---------|
 | **Valve** | `Open` or `Closed` (primary status) |
 | **Cloud Connected** | Device reachable in Flo cloud |
-| **Flow Rate** | Current GPM |
+| **Flow Rate** | Current GPM (instant rate from Flo) |
 | **Pressure** | PSI |
+| **Water Temperature** | Degrees F |
 | **Mode** | `Home`, `Away`, or `Sleep` |
+| **Daily Gallons** | Gallons used today (location total from Flo) |
+| **Hourly Gallons** | Gallons used in the current hour |
+| **Telemetry Age** | Minutes since Flo last updated flow/pressure/temp |
+
+**Daily Gallons** / **Hourly Gallons** are location-level Flo totals. If you have multiple shutoffs at one location, each node shows the same location usage.
 
 ---
 
@@ -67,7 +73,7 @@ Available on each shutoff node in IoX:
 
 | Command | Action |
 |---------|--------|
-| **Query** | Refresh all status from Flo cloud |
+| **Query** | Presence ping, then refresh all status (including usage) from Flo cloud |
 | **Set Valve** | Selector: Closed or Open |
 | **Run Health Test** | Start a Flo health test |
 | **Set Mode** | Selector: Home, Away, or Sleep |
@@ -83,6 +89,8 @@ Available on each shutoff node in IoX:
 | Authorization stays **Failed** (`3`) | Email/password; Flo app login works; PG3 has internet |
 | **Device Count** is 0 | Run **Discover**; confirm shutoff in Flo app |
 | **Valve** stuck or wrong | Run **Query**; check Flo app valve state |
+| **Flow Rate** stuck / high **Telemetry Age** | Run **Query**; confirm device online in Flo app; check WiFi |
+| **Daily Gallons** stays 0 | Confirm usage in Flo app; wait for next short poll |
 | Notice `auth` | Invalid credentials or Flo API error |
 
 **Logs:** `logs/debug.log` in the plugin directory.
@@ -93,13 +101,19 @@ Available on each shutoff node in IoX:
 
 Device status is refreshed from the Flo cloud on each **short poll**. The controller heartbeat runs on **long poll** only.
 
+Each short poll (and each **Query**):
+
+1. Sends a Flo **presence ping** so the cloud asks devices for fresh telemetry
+2. Refreshes each shutoff (`device.get_info`)
+3. Fetches today's water consumption once per Flo location (shared by shutoffs at that location)
+
 Configure intervals in the PG3 Node Server UI under **Configuration → Advanced Configuration**:
 
 | Setting | Role in this plugin |
 |---------|---------------------|
-| **shortPoll** | Refreshes all shutoff nodes (`device.get_info` per device) |
+| **shortPoll** | Presence ping + refresh all shutoff nodes + daily/hourly gallons |
 | **longPoll** | Controller heartbeat (DON/DOF on ST) |
 
-**Do not set shortPoll below 60 seconds.** Each short poll calls the Flo API once per shutoff device. Values under 60 increase cloud traffic and can contribute to auth or API errors. The PG3 default shortPoll is 60.
+**Do not set shortPoll below 60 seconds.** Each short poll calls the Flo API (presence + one `get_info` per shutoff + one consumption call per location). Values under 60 increase cloud traffic and can contribute to auth or API errors. The PG3 default shortPoll is 60.
 
-If you need a snapshot sooner, use **Query** on a shutoff node instead of lowering shortPoll.
+If you need a snapshot sooner, use **Query** on a shutoff or controller node instead of lowering shortPoll.

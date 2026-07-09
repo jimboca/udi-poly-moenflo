@@ -29,6 +29,9 @@
             <st id="GV6" editor="RSSI" />
             <st id="GV7" editor="COUNT" />
             <st id="GV8" editor="COUNT" />
+            <st id="GV9" editor="GALLON" />
+            <st id="GV10" editor="GALLON" />
+            <st id="GV11" editor="MINUTES" />
         </sts>
         <cmds>
             <sends />

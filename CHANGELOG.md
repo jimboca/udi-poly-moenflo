@@ -1,5 +1,15 @@
 # Changelog
 
+## [Unreleased]
+
+## [1.0.2] - 2026-07-08
+
+- Add **Daily Gallons** and **Hourly Gallons** from Flo water consumption API
+- Add **Telemetry Age** (minutes since Flo last updated flow/pressure/temp)
+- Send Flo presence ping on short poll and Query to refresh device telemetry
+- Fix UOMs: gallons use 69 (US gallon), telemetry age uses 45 (minutes); was 105/58 (inches/seconds)
+- Profile 1.0.2: new shutoff drivers GV9–GV11 with corrected gallon and minutes editors
+
 ## 1.0.1
 
 - Show `credentials` notice when username/password are missing or still set to placeholders

@@ -1,4 +1,6 @@
 
+from datetime import datetime, timezone
+
 from udi_interface import LOGGER, Node
 
 from const import (
@@ -6,8 +8,10 @@ from const import (
     SYSTEM_MODE_INDEX,
     UOM_BOOL,
     UOM_DBM,
+    UOM_GALLON,
     UOM_GPM,
     UOM_INDEX,
+    UOM_MINUTES,
     UOM_PSI,
     UOM_RAW,
     UOM_TEMP_F,
@@ -38,6 +42,48 @@ def _system_mode_index(mode):
     return SYSTEM_MODE_INDEX.get(str(mode).lower(), SYSTEM_MODE_INDEX['home'])
 
 
+def _parse_iso_datetime(value):
+    if not value:
+        return None
+    try:
+        text = str(value).strip()
+        if text.endswith('Z'):
+            text = text[:-1] + '+00:00'
+        dt = datetime.fromisoformat(text)
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=timezone.utc)
+        return dt
+    except (TypeError, ValueError):
+        return None
+
+
+def _minutes_since(value):
+    dt = _parse_iso_datetime(value)
+    if dt is None:
+        return 0
+    age = datetime.now(timezone.utc) - dt.astimezone(timezone.utc)
+    minutes = int(age.total_seconds() // 60)
+    return max(0, minutes)
+
+
+def _current_hour_gallons(consumption):
+    """Gallons for the current local hour from Flo hourly consumption items."""
+    if not consumption:
+        return 0.0
+    items = consumption.get('items') or []
+    if not items:
+        return 0.0
+    now = datetime.now().astimezone()
+    for item in reversed(items):
+        item_dt = _parse_iso_datetime(item.get('time'))
+        if item_dt is None:
+            continue
+        local_dt = item_dt.astimezone(now.tzinfo)
+        if local_dt.year == now.year and local_dt.month == now.month and local_dt.day == now.day and local_dt.hour == now.hour:
+            return _safe_float(item.get('gallonsConsumed'), prec=2)
+    return 0.0
+
+
 class FloDevice(Node):
     def __init__(self, controller, primary, address, name, device_id, location_id, device_info):
         super().__init__(controller.poly, primary, address, name)
@@ -65,6 +111,9 @@ class FloDevice(Node):
             'GV6': (0, UOM_DBM),
             'GV7': (0, UOM_RAW),
             'GV8': (0, UOM_RAW),
+            'GV9': (0, UOM_GALLON),
+            'GV10': (0, UOM_GALLON),
+            'GV11': (0, UOM_MINUTES),
         }
         for driver, (default, uom) in defaults.items():
             value = self.getDriver(driver)
@@ -87,6 +136,7 @@ class FloDevice(Node):
         self.setDriver('GV2', _safe_float(telemetry.get('gpm')), uom=UOM_GPM)
         self.setDriver('GV3', _safe_float(telemetry.get('psi')), uom=UOM_PSI)
         self.setDriver('GV4', _safe_float(telemetry.get('tempF'), prec=1), uom=UOM_TEMP_F)
+        self.setDriver('GV11', _minutes_since(telemetry.get('updated')), uom=UOM_MINUTES)
         valve = info.get('valve', {})
         valve_target = valve.get('target') or valve.get('lastKnown')
         self.setDriver('ST', _valve_index(valve_target), uom=UOM_INDEX)
@@ -101,17 +151,29 @@ class FloDevice(Node):
         self.setDriver('GV7', int(notifications.get('warningCount', 0)), uom=UOM_RAW)
         self.setDriver('GV8', int(notifications.get('criticalCount', 0)), uom=UOM_RAW)
 
-    def update(self):
+    def update_consumption(self):
+        consumption = self.controller.get_consumption(self.location_id)
+        if not consumption:
+            return
+        daily = consumption.get('aggregations', {}).get('sumTotalGallonsConsumed')
+        self.setDriver('GV9', _safe_float(daily, prec=2), uom=UOM_GALLON)
+        self.setDriver('GV10', _current_hour_gallons(consumption), uom=UOM_GALLON)
+
+    def update(self, ping=False):
         if self.controller.api is None:
             return
         try:
+            if ping:
+                self.controller.presence_ping()
+                self.controller.clear_consumption_cache(self.location_id)
             info = self.run_api(self.controller.api.device.get_info(self.device_id))
             self.update_from_dict(info)
+            self.update_consumption()
         except Exception as ex:
             LOGGER.error('%s: update failed: %s', self.lpfx, ex, exc_info=True)
 
     def query(self, command=None):
-        self.update()
+        self.update(ping=True)
         self.reportDrivers()
 
     def set_valve(self, command=None):
@@ -187,6 +249,9 @@ class FloDevice(Node):
         {'driver': 'GV6', 'value': 0, 'uom': UOM_DBM},
         {'driver': 'GV7', 'value': 0, 'uom': UOM_RAW},
         {'driver': 'GV8', 'value': 0, 'uom': UOM_RAW},
+        {'driver': 'GV9', 'value': 0, 'uom': UOM_GALLON},
+        {'driver': 'GV10', 'value': 0, 'uom': UOM_GALLON},
+        {'driver': 'GV11', 'value': 0, 'uom': UOM_MINUTES},
     ]
     commands = {
         'QUERY': query,
